@@ -2,34 +2,32 @@ import pygame
 import sys
 import random
 
-# Инициализация pygame
 pygame.init()
+pygame.mixer.init()
 
-# Настройки экрана
 WIDTH, HEIGHT = 400, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Flappy Bird")
 
-# Цвета
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 BLUE = (135, 206, 250)
 GREEN = (0, 200, 0)
 
-
-# FPS
 clock = pygame.time.Clock()
 FPS = 60
 
 # Загрузка ресурсов
-bird_img = pygame.image.load("assets/bird.png")  # Изображение птицы
-pipe_img = pygame.image.load("assets/pipe.png")  # Изображение трубы
-pipe_img = pygame.transform.scale(pipe_img, (60, 400))  # Масштабирование трубы
-background_img = pygame.image.load("assets/ background.png")  # Фон
+bird_img = pygame.image.load("assets/bird.png")  
+pipe_img = pygame.image.load("assets/pipe.png")  
+pipe_img = pygame.transform.scale(pipe_img, (100, 300))  
+background_img = pygame.image.load("assets/background.png") 
+
+background_img = pygame.transform.scale(background_img, (WIDTH, HEIGHT))
 
 # Масштабирование и настройка
 bird_img = pygame.transform.scale(bird_img, (40, 40))
-bird_rect = bird_img.get_rect(center=(100, HEIGHT // 2))
+bird_rect = bird_img.get_rect(center=(50, HEIGHT // 2))
 
 # Параметры игры
 gravity = 0.25
@@ -48,7 +46,7 @@ pipe_speed = 4
 pipe_list = []
 
 def create_pipe():
-    """Создает верхнюю и нижнюю трубы с зазором."""
+    """Создает верхнюю и нижнюю трубы с зазором.""" 
     pipe_height = random.randint(200, 400)
     top_pipe = pipe_img.get_rect(midbottom=(WIDTH + 60, pipe_height - pipe_gap // 2))
     bottom_pipe = pipe_img.get_rect(midtop=(WIDTH + 60, pipe_height + pipe_gap // 2))
@@ -64,14 +62,13 @@ def draw_pipes(pipes):
     """Рисует трубы на экране."""
     for pipe in pipes:
         if pipe.bottom >= HEIGHT:
-            screen.blit(pipe_img, pipe)
+            screen.blit(pipe_img, pipe) 
         else:
             flipped_pipe = pygame.transform.flip(pipe_img, False, True)
             screen.blit(flipped_pipe, pipe)
 
 def check_collision(pipes):
     """Проверяет столкновения птицы с трубами или краями экрана."""
-    global running
     for pipe in pipes:
         if bird_rect.colliderect(pipe):
             pygame.mixer.Sound.play(collision_sound)
@@ -84,18 +81,19 @@ def check_collision(pipes):
     return True
 
 def display_score(score):
-    """Отображает текущий счет."""
+    """Отображает текущий счет.""" 
     score_surface = font.render(f"Score: {score}", True, BLACK)
     screen.blit(score_surface, (10, 10))
 
-# Таймер для создания труб
+# Таймер для создания труб 
 SPAWNPIPE = pygame.USEREVENT
 pygame.time.set_timer(SPAWNPIPE, 1200)
 
 # Основной игровой цикл
 running = True
+passed_pipes = []  
 while running:
-    screen.blit(background_img, (0, 0))
+    screen.blit(background_img, (0, 0))  
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -105,7 +103,7 @@ while running:
             if event.key == pygame.K_SPACE:
                 bird_movement = 0
                 bird_movement -= 6
-                pygame.mixer.Sound.play(flap_sound)  # Исправил сюда правильную переменную
+                pygame.mixer.Sound.play(flap_sound)
 
         if event.type == SPAWNPIPE:
             pipe_list.extend(create_pipe())
@@ -123,10 +121,12 @@ while running:
     if not check_collision(pipe_list):
         running = False
 
-    # Счет
+    # Счетчик
     for pipe in pipe_list:
-        if 95 < pipe.centerx < 105:
-            score += 1
+        # Проверяем только верхние трубы (pipe.bottom >= HEIGHT означает верхнюю трубу)
+        if pipe.bottom >= HEIGHT and pipe.centerx < 100 and pipe.centerx > 95 and pipe not in passed_pipes:
+            passed_pipes.append(pipe)  
+            score += 1 
             pygame.mixer.Sound.play(point_sound)
 
     display_score(score)
