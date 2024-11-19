@@ -2,199 +2,222 @@ import pygame
 import sys
 import random
 
-# Инициализация pygame
 pygame.init()
 pygame.mixer.init()
 
-# Настройки экрана
 WIDTH, HEIGHT = 400, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Flappy Bird")
 
-# Цвета
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-YELLOW = (255, 255, 0)
-RED = (255, 0, 0)
-
-# FPS
+WHITE, BLACK, YELLOW, RED = (255, 255, 255), (0, 0, 0), (255, 255, 0), (255, 0, 0)
 clock = pygame.time.Clock()
 FPS = 60
 
-# Попытка загрузить изображения и звуки с обработкой ошибок
-try:
-    bird_img = pygame.image.load("assets/bird.png")  # Изображение птицы
-    pipe_img = pygame.image.load("assets/pipe.png")  # Изображение трубы
-    pipe_img = pygame.transform.scale(pipe_img, (100, 300))  # Масштабирование трубы
-    background_img = pygame.image.load("assets/background.png")  # Фон
-    background_img = pygame.transform.scale(background_img, (WIDTH, HEIGHT))  # Растягиваем фон на весь экран
-    flap_sound = pygame.mixer.Sound("assets/flap.wav")
-    collision_sound = pygame.mixer.Sound("assets/collision.wav")
-    point_sound = pygame.mixer.Sound("assets/point.wav")
-except pygame.error as e:
-    print(f"Ошибка при загрузке ресурсов: {e}")
-    sys.exit()
+#загрузка ресурсов
+def load_assets():
+    try:
+        bird_img = pygame.image.load("assets/bird.png")
+        pipe_img = pygame.image.load("assets/pipe.png")
+        pipe_img = pygame.transform.scale(pipe_img, (100, 300))
+        background_img = pygame.image.load("assets/background.png")
+        background_img = pygame.transform.scale(background_img, (WIDTH, HEIGHT))
+        flap_sound = pygame.mixer.Sound("assets/flap.wav")
+        collision_sound = pygame.mixer.Sound("assets/collision.wav")
+        point_sound = pygame.mixer.Sound("assets/point.wav")
+    except pygame.error as e:
+        print(f"Ошибка загрузки ресурсов: {e}")
+        sys.exit()
+    return bird_img, pipe_img, background_img, flap_sound, collision_sound, point_sound
 
-# Масштабирование и настройка
+bird_img, pipe_img, background_img, flap_sound, collision_sound, point_sound = load_assets()
+
 bird_img = pygame.transform.scale(bird_img, (40, 40))
 bird_rect = bird_img.get_rect(center=(50, HEIGHT // 2))
 
-# Параметры игры
-gravity = 0.25
+difficulties = {
+    "easy": {"gravity": 0.25, "pipe_speed": 3, "pipe_gap": 200, "pipe_frequency": 1500}, 
+    "medium": {"gravity": 0.35, "pipe_speed": 4, "pipe_gap": 150, "pipe_frequency": 1200},
+    "hard": {"gravity": 0.5, "pipe_speed": 6, "pipe_gap": 100, "pipe_frequency": 1000},
+}
+current_difficulty = "easy"
+
+gravity = difficulties[current_difficulty]["gravity"]
+pipe_speed = difficulties[current_difficulty]["pipe_speed"]
+pipe_gap = difficulties[current_difficulty]["pipe_gap"]
+pipe_frequency = difficulties[current_difficulty]["pipe_frequency"]
 bird_movement = 0
 score = 0
 font = pygame.font.Font(None, 40)
 
-# Параметры труб
-pipe_gap = 150
-pipe_speed = 4
 pipe_list = []
-
-# Список пройденных труб
 passed_pipes = []
 
+SPAWNPIPE = pygame.USEREVENT
+pygame.time.set_timer(SPAWNPIPE, pipe_frequency)
+
+#создание труб
 def create_pipe():
-    """Создает верхнюю и нижнюю трубы с зазором."""
     pipe_height = random.randint(200, 400)
     top_pipe = pipe_img.get_rect(midbottom=(WIDTH + 60, pipe_height - pipe_gap // 2))
     bottom_pipe = pipe_img.get_rect(midtop=(WIDTH + 60, pipe_height + pipe_gap // 2))
     return top_pipe, bottom_pipe
 
+#движение труб
 def move_pipes(pipes):
-    """Двигает трубы влево и удаляет пройденные."""
     for pipe in pipes:
         pipe.centerx -= pipe_speed
     return [pipe for pipe in pipes if pipe.right > 0]
 
+#отрисовка труб
 def draw_pipes(pipes):
-    """Рисует трубы на экране."""
     for pipe in pipes:
-        if pipe.bottom >= HEIGHT:
-            screen.blit(pipe_img, pipe)
-        else:
-            flipped_pipe = pygame.transform.flip(pipe_img, False, True)
-            screen.blit(flipped_pipe, pipe)
+        screen.blit(pipe_img if pipe.bottom >= HEIGHT else pygame.transform.flip(pipe_img, False, True), pipe)
 
+#проверка на столкновение
 def check_collision(pipes):
-    """Проверяет столкновения птицы с трубами или краями экрана."""
     for pipe in pipes:
         if bird_rect.colliderect(pipe):
             pygame.mixer.Sound.play(collision_sound)
             return False
+    return bird_rect.top > 0 and bird_rect.bottom < HEIGHT
 
-    if bird_rect.top <= 0 or bird_rect.bottom >= HEIGHT:
-        pygame.mixer.Sound.play(collision_sound)
-        return False
-
-    return True
-
-def draw_text_with_shadow(text, font, color, x, y, shadow_offset=(2, 2), shadow_color=BLACK):
-    """Функция рисования текста с тенью и контуром."""
-    # Рисуем тень
-    text_shadow = font.render(text, True, shadow_color)
-    screen.blit(text_shadow, (x + shadow_offset[0], y + shadow_offset[1]))
-    
-    # Рисуем основной текст
-    text_surface = font.render(text, True, color)
-    screen.blit(text_surface, (x, y))
-
+#отображение счета
 def display_score(score):
-    """Отображает текущий счет с тенью и контуром для текста."""
-    draw_text_with_shadow(f"Счет: {score}", font, YELLOW, 10, 10)
+    text = font.render(f"Счет: {score}", True, BLACK)
+    text_rect = text.get_rect()
+    pygame.draw.rect(screen, WHITE, text_rect.inflate(20, 20), 2)
+    screen.blit(text, (text_rect.x + 10, text_rect.y + 10))
 
+#отображение главного меню
 def display_menu():
-    """Отображает главное меню с фоном."""
-    screen.blit(background_img, (0, 0)) 
+    screen.blit(background_img, (0, 0))
     menu_font = pygame.font.Font(None, 60)
-    title = menu_font.render("Flappy Bird", True, BLACK)
-    start_text = pygame.font.Font(None, 40).render("НАЧАТЬ ИГРУ (SPACE)", True, BLACK)
-    quit_text = pygame.font.Font(None, 40).render("ВЫХОД (ESC)", True, BLACK)
+    options = [("FLAPPY BIRD", (WIDTH // 2, HEIGHT // 4)), 
+               ("Начать игру (SPACE)", (WIDTH // 2, HEIGHT // 2)), 
+               ("Настройки (S)", (WIDTH // 2, HEIGHT * 5 // 8)), 
+               ("Выход (ESC)", (WIDTH // 2, HEIGHT * 3 // 4))]
+    
+    for text, pos in options:
+        render_text(text, pos)
 
-    title_rect = title.get_rect(center=(WIDTH // 2, HEIGHT // 4))
-    start_rect = start_text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
-    quit_rect = quit_text.get_rect(center=(WIDTH // 2, HEIGHT * 3 // 4))
-
-    screen.blit(title, title_rect)
-    screen.blit(start_text, start_rect)
-    screen.blit(quit_text, quit_rect)
     pygame.display.update()
 
-# Таймер для создания труб
-SPAWNPIPE = pygame.USEREVENT
-pygame.time.set_timer(SPAWNPIPE, 1200)
+#рендеринг текста
+def render_text(text, pos):
+    menu_font = pygame.font.Font(None, 40)
+    text_surf = menu_font.render(text, True, BLACK)
+    text_rect = text_surf.get_rect(center=pos)
+    pygame.draw.rect(screen, WHITE, text_rect.inflate(20, 20), 2)
+    screen.blit(text_surf, text_rect)
 
-# Основной игровой цикл
+#отображение настроек
+def display_settings():
+    global current_difficulty
+    settings_running = True
+    while settings_running:
+        screen.blit(background_img, (0, 0))
+        settings_text = pygame.font.Font(None, 40).render("Настройки сложности", True, BLACK)
+        options = [("Легкий (S)", "easy"), ("Средний (D)", "medium"), ("Сложный (F)", "hard")]
+        
+        for i, (text, difficulty) in enumerate(options):
+            color = YELLOW if current_difficulty == difficulty else BLACK
+            render_text_with_color(text, (WIDTH // 2, 150 + i * 100), color)
+        
+        pygame.display.update()
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_s:
+                    current_difficulty = "easy"
+                elif event.key == pygame.K_d:
+                    current_difficulty = "medium"
+                elif event.key == pygame.K_f:
+                    current_difficulty = "hard"
+                elif event.key == pygame.K_ESCAPE:
+                    settings_running = False
+                    show_menu()
+
+#рендеринг текста с цветом
+def render_text_with_color(text, pos, color):
+    settings_font = pygame.font.Font(None, 40)
+    text_surf = settings_font.render(text, True, color)
+    text_rect = text_surf.get_rect(center=pos)
+    pygame.draw.rect(screen, WHITE, text_rect.inflate(20, 20), 2)
+    screen.blit(text_surf, text_rect)
+
+#игровой цикл
 def game_loop():
-    global bird_movement, bird_rect, pipe_list, passed_pipes, score 
-   
+    global bird_movement, bird_rect, pipe_list, passed_pipes, score, gravity, pipe_speed, pipe_gap, pipe_frequency
+
+    gravity = difficulties[current_difficulty]["gravity"]
+    pipe_speed = difficulties[current_difficulty]["pipe_speed"]
+    pipe_gap = difficulties[current_difficulty]["pipe_gap"]
+    pipe_frequency = difficulties[current_difficulty]["pipe_frequency"]
+
     bird_movement = 0
     bird_rect.center = (50, HEIGHT // 2)
-    
     pipe_list.clear()
     passed_pipes.clear()
-    
     score = 0
-    
+
     running = True
-    
     while running:
-        screen.blit(background_img,(0 ,0))
+        screen.blit(background_img, (0, 0))
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running=False
-                
+                running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    bird_movement=-6  
+                    bird_movement = -6
                     pygame.mixer.Sound.play(flap_sound)
 
             if event.type == SPAWNPIPE:
                 pipe_list.extend(create_pipe())
 
-        # Птичка 
-        bird_movement += gravity 
-        bird_rect.centery += bird_movement 
-        screen.blit(bird_img,bird_rect)
+        bird_movement += gravity
+        bird_rect.centery += bird_movement
+        screen.blit(bird_img, bird_rect)
 
-        # Трубы 
-        pipe_list=move_pipes(pipe_list) 
+        pipe_list = move_pipes(pipe_list)
         draw_pipes(pipe_list)
 
-        # Проверка на столкновение 
         if not check_collision(pipe_list):
-            running=False 
+            running = False
 
-        # Проверка прохождения труб и начисление очков 
+        passed_this_pair = False
         for pipe in pipe_list:
-            if pipe.centerx < 50 and pipe not in passed_pipes:  
-                score +=1 
-                passed_pipes.append(pipe)  
-                pygame.mixer.Sound.play(point_sound)
+            if pipe.centerx < 50 and pipe not in passed_pipes:
+                if not passed_this_pair:
+                    score += 1
+                    passed_pipes.append(pipe)
+                    pygame.mixer.Sound.play(point_sound)
+                    passed_this_pair = True
 
-        # Отображаем счет 
-        display_score(score) 
-        pygame.display.update() 
+        display_score(score)
+        pygame.display.update()
         clock.tick(FPS)
 
-# Меню игры 
+#отображение главного меню
 def show_menu():
-    
-   menu_running=True
-   
-   while menu_running: 
-       display_menu()
+    menu_running = True
+    while menu_running:
+        display_menu()
 
-       for event in pygame.event.get():
-           if event.type ==pygame.QUIT: 
-               pygame.quit() 
-               sys.exit() 
-           if event.type ==pygame.KEYDOWN: 
-               if event.key==pygame.K_SPACE: 
-                   game_loop()  
-               if event.key==pygame.K_ESCAPE: 
-                   pygame.quit() 
-                   sys.exit()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    game_loop()
+                elif event.key == pygame.K_s:
+                    display_settings()
+                elif event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    sys.exit()
 
-# Запуск меню 
 show_menu()
