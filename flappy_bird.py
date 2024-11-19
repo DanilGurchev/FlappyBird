@@ -35,9 +35,9 @@ bird_img = pygame.transform.scale(bird_img, (40, 40))
 bird_rect = bird_img.get_rect(center=(50, HEIGHT // 2))
 
 difficulties = {
-    "easy": {"gravity": 0.25, "pipe_speed": 3, "pipe_gap": 200, "pipe_frequency": 1500}, 
+    "easy": {"gravity": 0.25, "pipe_speed": 3, "pipe_gap": 200, "pipe_frequency": 2200}, 
     "medium": {"gravity": 0.35, "pipe_speed": 4, "pipe_gap": 150, "pipe_frequency": 1200},
-    "hard": {"gravity": 0.5, "pipe_speed": 6, "pipe_gap": 100, "pipe_frequency": 1000},
+    "hard": {"gravity": 0.5, "pipe_speed": 6, "pipe_gap": 100, "pipe_frequency": 900},
 }
 current_difficulty = "easy"
 
@@ -197,7 +197,7 @@ def game_loop():
                     pygame.mixer.Sound.play(point_sound)
                     passed_this_pair = True
 
-        display_score(score) 
+        display_score(score)  
         pygame.display.update()
         clock.tick(FPS)
 
