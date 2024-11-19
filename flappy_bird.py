@@ -2,46 +2,47 @@ import pygame
 import sys
 import random
 
-#Инициализация pygame
+# Инициализация pygame
 pygame.init()
 
-#Настройки экрана
+# Настройки экрана
 WIDTH, HEIGHT = 400, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Flappy Bird")
 
-#Цвета
+# Цвета
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 BLUE = (135, 206, 250)
 GREEN = (0, 200, 0)
 
-#FPS
+
+# FPS
 clock = pygame.time.Clock()
 FPS = 60
 
-#Загрузка ресурсов
-bird_img = pygame.image.load("bird.png")  
-pipe_img = pygame.image.load("pipe.png")  
-pipe_img = pygame.transform.scale(pipe_img, (60, 400))  
-background_img = pygame.image.load("background.png")  
+# Загрузка ресурсов
+bird_img = pygame.image.load("assets/bird.png")  # Изображение птицы
+pipe_img = pygame.image.load("assets/pipe.png")  # Изображение трубы
+pipe_img = pygame.transform.scale(pipe_img, (60, 400))  # Масштабирование трубы
+background_img = pygame.image.load("assets/ background.png")  # Фон
 
-#Масштабирование и настройка
+# Масштабирование и настройка
 bird_img = pygame.transform.scale(bird_img, (40, 40))
 bird_rect = bird_img.get_rect(center=(100, HEIGHT // 2))
 
-#Параметры игры
+# Параметры игры
 gravity = 0.25
 bird_movement = 0
 score = 0
 font = pygame.font.Font(None, 40)
 
-#Звуки
+# Звуки
 flap_sound = pygame.mixer.Sound("flap.wav")
 collision_sound = pygame.mixer.Sound("collision.wav")
 point_sound = pygame.mixer.Sound("point.wav")
 
-#Параметры труб
+# Параметры труб
 pipe_gap = 150
 pipe_speed = 4
 pipe_list = []
@@ -87,11 +88,11 @@ def display_score(score):
     score_surface = font.render(f"Score: {score}", True, BLACK)
     screen.blit(score_surface, (10, 10))
 
-#Таймер для создания труб
+# Таймер для создания труб
 SPAWNPIPE = pygame.USEREVENT
 pygame.time.set_timer(SPAWNPIPE, 1200)
 
-#Основной игровой цикл
+# Основной игровой цикл
 running = True
 while running:
     screen.blit(background_img, (0, 0))
@@ -104,25 +105,25 @@ while running:
             if event.key == pygame.K_SPACE:
                 bird_movement = 0
                 bird_movement -= 6
-                pygame.mixer.Sound.play(flap_sound)
+                pygame.mixer.Sound.play(flap_sound)  # Исправил сюда правильную переменную
 
         if event.type == SPAWNPIPE:
             pipe_list.extend(create_pipe())
 
-    #Птичка
+    # Птичка
     bird_movement += gravity
     bird_rect.centery += bird_movement
     screen.blit(bird_img, bird_rect)
 
-    #Трубы
+    # Трубы
     pipe_list = move_pipes(pipe_list)
     draw_pipes(pipe_list)
 
-    #Столкновения
+    # Столкновения
     if not check_collision(pipe_list):
         running = False
 
-    #Счет
+    # Счет
     for pipe in pipe_list:
         if 95 < pipe.centerx < 105:
             score += 1
