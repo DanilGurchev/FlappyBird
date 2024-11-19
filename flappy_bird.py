@@ -83,7 +83,7 @@ def check_collision(pipes):
 
 #отображение счета
 def display_score(score):
-    text = font.render(f"Счет: {score}", True, BLACK)
+    text = font.render(f"Счет: {round(score)}", True, BLACK)  # Округляем score перед отображением
     text_rect = text.get_rect()
     pygame.draw.rect(screen, WHITE, text_rect.inflate(20, 20), 2)
     screen.blit(text, (text_rect.x + 10, text_rect.y + 10))
@@ -192,12 +192,12 @@ def game_loop():
         for pipe in pipe_list:
             if pipe.centerx < 50 and pipe not in passed_pipes:
                 if not passed_this_pair:
-                    score += 1
+                    score += 0.5
                     passed_pipes.append(pipe)
                     pygame.mixer.Sound.play(point_sound)
                     passed_this_pair = True
 
-        display_score(score)
+        display_score(score) 
         pygame.display.update()
         clock.tick(FPS)
 
