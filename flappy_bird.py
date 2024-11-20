@@ -83,7 +83,7 @@ def check_collision(pipes):
 
 #отображение счета
 def display_score(score):
-    text = font.render(f"Счет: {round(score)}", True, BLACK)  # Округляем score перед отображением
+    text = font.render(f"Счет: {round(score)}", True, BLACK) 
     text_rect = text.get_rect()
     pygame.draw.rect(screen, WHITE, text_rect.inflate(20, 20), 2)
     screen.blit(text, (text_rect.x + 10, text_rect.y + 10))
