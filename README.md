@@ -8,4 +8,4 @@
    pip install -r requirements.txt
 2. Запуск
    ```bash
-   flappy_bird main.py
+   flappy_bird.py
